@@ -1,0 +1,28 @@
+{
+  "fill" : {
+    "solid" : "srgb:0.09020,0.07451,0.24314,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "lens.svg",
+          "name" : "lens"
+        }
+      ],
+      "name" : "Lens"
+    },
+    {
+      "layers" : [
+        {
+          "image-name" : "aurora.svg",
+          "name" : "aurora"
+        }
+      ],
+      "name" : "Aurora"
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}

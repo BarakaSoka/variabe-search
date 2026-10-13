@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleDisplayName</key>
+	<string>Variabe Search</string>
+	<key>CFBundleExecutable</key>
+	<string>VariabeSearch</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.variabe.search</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>Variabe Search</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.6.0</string>
+	<key>CFBundleVersion</key>
+	<string>11</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Variabe Search asks QuickTime Player to open a recording at the moment that matched your search.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Variabe Search indexes the folders you choose so you can search them by describing what's inside. Everything stays on this Mac.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Variabe Search indexes the folders you choose so you can search them by describing what's inside. Everything stays on this Mac.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Variabe Search indexes the folders you choose so you can search them by describing what's inside. Everything stays on this Mac.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>Variabe Search indexes the folders you choose so you can search them by describing what's inside. Everything stays on this Mac.</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+</dict>
+</plist>

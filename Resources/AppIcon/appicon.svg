@@ -1,21 +1,15 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <defs>
-    <clipPath id="body"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
-    <filter id="drop" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="16"/></filter>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#241C5C"/><stop offset="1" stop-color="#0B0C24"/></linearGradient>
-    <radialGradient id="a1" cx="300" cy="260" r="520" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7C5CFF" stop-opacity="0.85"/><stop offset="1" stop-color="#7C5CFF" stop-opacity="0"/></radialGradient>
-    <radialGradient id="a2" cx="800" cy="820" r="460" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#22D3EE" stop-opacity="0.55"/><stop offset="1" stop-color="#22D3EE" stop-opacity="0"/></radialGradient>
-    <linearGradient id="vg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5EEAD4"/><stop offset="0.5" stop-color="#38BDF8"/><stop offset="1" stop-color="#A78BFA"/></linearGradient>
-    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E9E5FF"/><stop offset="1" stop-color="#B9AEFF"/></linearGradient>
-  </defs>
-  <rect x="112" y="124" width="800" height="800" rx="180" fill="#000" opacity="0.32" filter="url(#drop)"/>
-  <g clip-path="url(#body)">
-    <rect x="100" y="100" width="824" height="824" fill="url(#bg)"/>
-    <rect x="100" y="100" width="824" height="824" fill="url(#a1)"/>
-    <rect x="100" y="100" width="824" height="824" fill="url(#a2)"/>
-    <circle cx="468" cy="468" r="196" fill="#FFFFFF" fill-opacity="0.07" stroke="#F5F3FF" stroke-width="60"/>
-    <path d="M640 640 L770 770" stroke="url(#hg)" stroke-width="92" stroke-linecap="round"/>
-    <path d="M378 398 L468 556 L558 398" fill="none" stroke="url(#vg)" stroke-width="58" stroke-linecap="round" stroke-linejoin="round"/>
-  </g>
-  <rect x="101" y="101" width="822" height="822" rx="184" fill="none" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="2"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><defs>
+<clipPath id="body"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+<filter id="drop" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="16"/></filter>
+<filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FAFAFB"/><stop offset="1" stop-color="#D4D4DA"/></linearGradient>
+<linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#F1F1F4"/><stop offset="1" stop-color="#C9C9CF"/></linearGradient>
+<radialGradient id="lf" cx="430" cy="410" r="260" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity=".15"/></radialGradient>
+</defs>
+<rect x="112" y="124" width="800" height="800" rx="180" fill="#000" opacity=".28" filter="url(#drop)"/>
+<g clip-path="url(#body)"><rect x="100" y="100" width="824" height="824" fill="url(#bg)"/>
+<ellipse cx="512" cy="150" rx="520" ry="230" fill="url(#sheen)" opacity=".7"/><g filter="url(#soft)" opacity=".28" transform="translate(10 18)"><rect x="282" y="282" width="372" height="372" rx="96" fill="#000" stroke="#000" stroke-width="60"/><path d="M660 660 L775 775" stroke="#000" stroke-width="92" stroke-linecap="round"/></g>
+<rect x="282" y="282" width="372" height="372" rx="96" fill="url(#lf)" stroke="none" stroke-width="60"/>
+<rect x="282" y="282" width="372" height="372" rx="96" fill="none" stroke="url(#g)" stroke-width="60"/>
+<path d="M660 660 L775 775" stroke="url(#g)" stroke-width="92" stroke-linecap="round"/></g><rect x="101" y="101" width="822" height="822" rx="184" fill="none" stroke="#000" stroke-opacity=".1" stroke-width="2"/></svg>

@@ -171,13 +171,12 @@ struct PreviewActions: View {
             Button(action: open) {
                 Label(row.openTitle, systemImage: "arrow.up.forward.app")
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Brand.violet)
+            .glassButtonStyle()
             .keyboardShortcut(.defaultAction)
             Button(action: reveal) {
                 Label("Show in Finder", systemImage: "folder")
             }
-            .buttonStyle(.bordered)
+            .glassButtonStyle()
         }
         .buttonBorderShape(.capsule)
         .controlSize(controlSize)
@@ -293,7 +292,7 @@ struct AudioMoment: View {
                     Image(systemName: playback.isCurrent(row) && playback.isPlaying ? "pause.circle.fill"
                                                                                      : "play.circle.fill")
                         .font(.system(size: 34))
-                        .foregroundStyle(Brand.violet)
+                        .foregroundStyle(Brand.ink)
                 }
                 .buttonStyle(.plain)
                 .help(row.loc.map { "Play from \(ResultRow.clock($0))" } ?? "Play")
@@ -459,7 +458,7 @@ struct CodeLines: View {
                         }
                         .padding(.vertical, 0.5)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(isFocus(offset) ? Brand.violet.opacity(0.16) : Color.clear)
+                        .background(isFocus(offset) ? Brand.highlight : Color.clear)
                         .id(offset)
                     }
                 }

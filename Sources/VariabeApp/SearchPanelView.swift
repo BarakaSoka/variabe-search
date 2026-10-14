@@ -19,22 +19,27 @@ struct SearchPanelView: View {
         }
         .frame(width: SearchPanelController.width)
         .frame(maxHeight: .infinity, alignment: .top)
-        // Glass alone is too see-through over busy backgrounds.
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.62))
+        // A light frost over the glass: Liquid Glass alone is too see-through over busy backgrounds.
+        .background(Color(nsColor: .windowBackgroundColor).opacity(0.35))
         .clipShape(RoundedRectangle(cornerRadius: controller.cornerRadius, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: controller.cornerRadius, style: .continuous)
             .strokeBorder(.white.opacity(0.14), lineWidth: 0.5))
-        .tint(Brand.violet)
+        .tint(Brand.accent)
     }
 
     private var header: some View {
         HStack(spacing: 12) {
             // A search of code shows it: the field's magnifier becomes code's mark.
-            Image(systemName: controller.isCode ? FileKind.code.symbol : "magnifyingglass")
-                .font(.system(size: controller.isCode ? 18 : 21, weight: .semibold))
-                .foregroundStyle(Brand.gradient)
-                .frame(width: 26)
-                .help(controller.isCode ? "Searching your code" : "")
+            Group {
+                if controller.isCode {
+                    Image(systemName: FileKind.code.symbol).font(.system(size: 18, weight: .semibold))
+                } else {
+                    LensGlyph(size: 24)
+                }
+            }
+            .foregroundStyle(Brand.gradient)
+            .frame(width: 26)
+            .help(controller.isCode ? "Searching your code" : "")
             // With code search on, one example is code's: nothing else in the panel shows "code:".
             SearchField(text: $controller.query, fontSize: 24,
                         placeholder: controller.model.hasCode
@@ -76,8 +81,7 @@ struct SearchPanelView: View {
                     Text("No good matches in your code").font(.system(size: 15, weight: .semibold))
                     Text("Try saying what the code does, or a name that's in it.").foregroundStyle(.secondary)
                 } else {
-                    Image(systemName: "sparkle.magnifyingglass")
-                        .font(.system(size: 30, weight: .light))
+                    LensGlyph(size: 36, weight: 3.5)
                         .foregroundStyle(Brand.gradient)
                         .padding(.bottom, 4)
                     Text("No good matches").font(.system(size: 15, weight: .semibold))
@@ -184,7 +188,7 @@ private struct ResultList: View {
                             } label: {
                                 Text("Show all \(group.total) \(group.kind.title.lowercased())…")
                                     .font(.system(size: 11.5, weight: .medium))
-                                    .foregroundStyle(Brand.violet)
+                                    .foregroundStyle(Brand.accent)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 3)
                             }
@@ -260,10 +264,9 @@ private struct PanelRow: View {
                 HStack(spacing: 6) {
                     Text(row.title)
                         .font(.system(size: 13.5, weight: .medium))
-                        .foregroundStyle(selected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    if let place = row.place { PlaceBadge(text: place, onImage: selected) }
+                    if let place = row.place { PlaceBadge(text: place) }
                 }
                 Group {
                     if let excerpt = row.excerpt, row.matchedWords, row.kind != .code {
@@ -276,7 +279,7 @@ private struct PanelRow: View {
                     }
                 }
                 .font(.system(size: 11.5))
-                .foregroundStyle(selected ? AnyShapeStyle(.white.opacity(0.8)) : AnyShapeStyle(.secondary))
+                .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
@@ -284,8 +287,7 @@ private struct PanelRow: View {
         .padding(.vertical, 6)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 11, style: .continuous)
-            .fill(selected ? AnyShapeStyle(Brand.selection) : AnyShapeStyle(Color.clear))
-            .shadow(color: Brand.violet.opacity(selected ? 0.3 : 0), radius: 6, y: 2))
+            .fill(selected ? Brand.highlight : Color.clear))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(row.kind.title), \(row.name), \(row.reason)")
         .accessibilityAddTraits(selected ? .isSelected : [])
@@ -310,9 +312,9 @@ private struct WeakerRow: View {
         .foregroundStyle(.secondary)
         .padding(.horizontal, 10)
         .frame(height: 28)
-        .foregroundStyle(selected ? AnyShapeStyle(.white) : AnyShapeStyle(.secondary))
+        .foregroundStyle(.secondary)
         .background(RoundedRectangle(cornerRadius: 11, style: .continuous)
-            .fill(selected ? AnyShapeStyle(Brand.selection) : AnyShapeStyle(Color.clear)))
+            .fill(selected ? Brand.highlight : Color.clear))
         .contentShape(Rectangle())
         .accessibilityAddTraits(.isButton)
     }
@@ -554,7 +556,7 @@ private struct CodeHint: View {
                                 .font(.system(size: 12, design: .monospaced))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(Capsule().fill(Brand.iris.opacity(0.12)))
+                                .background(Capsule().fill(Brand.fill))
                         }
                         .buttonStyle(.plain)
                     }
@@ -599,11 +601,10 @@ private struct ScopeChips: View {
                     Text("\(count)").font(.system(size: 11, weight: .medium).monospacedDigit()).opacity(0.7)
                 }
             }
-            .foregroundStyle(on ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            .foregroundStyle(on ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             .padding(.horizontal, 11)
             .padding(.vertical, 5)
-            .background(Capsule().fill(on ? AnyShapeStyle(Brand.selection) : AnyShapeStyle(Color.primary.opacity(0.07))))
-            .overlay(Capsule().strokeBorder(Color.primary.opacity(on ? 0 : 0.08), lineWidth: 0.5))
+            .modifier(ChipBackground(on: on))
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -622,7 +623,7 @@ private struct KeyHint: View {
                 .font(.system(size: 10.5, weight: .medium, design: .rounded))
                 .padding(.horizontal, 5)
                 .frame(minWidth: 20, minHeight: 18)
-                .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.primary.opacity(0.08)))
+                .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Brand.fill))
                 .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous)
                     .strokeBorder(Color.primary.opacity(0.12), lineWidth: 0.5))
             Text(label).lineLimit(1)

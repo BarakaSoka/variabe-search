@@ -54,7 +54,7 @@ final class SearchWindowController: NSObject, NSWindowDelegate {
         if UserDefaults.standard.string(forKey: "defaultsSuite") == nil {
             window.setFrameAutosaveName("VariabeSearchWindow")
         }
-        window.contentView = NSHostingView(rootView: SearchWindowView(search: search, model: app.model, app: app).tint(Brand.violet))
+        window.contentView = NSHostingView(rootView: SearchWindowView(search: search, model: app.model, app: app).tint(Brand.accent))
         if window.frame.origin == .zero { window.center() }
         self.window = window
         return window
@@ -367,10 +367,15 @@ struct SearchWindowView: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 HStack(spacing: 9) {
-                    Image(systemName: search.isCode ? FileKind.code.symbol : "magnifyingglass")
-                        .font(.system(size: search.isCode ? 15 : 17, weight: .semibold))
-                        .foregroundStyle(Brand.gradient)
-                        .frame(width: 22)
+                    Group {
+                        if search.isCode {
+                            Image(systemName: FileKind.code.symbol).font(.system(size: 15, weight: .semibold))
+                        } else {
+                            LensGlyph(size: 19)
+                        }
+                    }
+                    .foregroundStyle(Brand.gradient)
+                    .frame(width: 22)
                     SearchField(text: $search.query, fontSize: 18, placeholder: placeholder,
                                 onMake: { search.field = $0 }, onFocus: { fieldFocused = $0 })
                     if !search.query.isEmpty {
@@ -383,19 +388,18 @@ struct SearchWindowView: View {
                         .help("Clear")
                     }
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 14)
                 .frame(height: 38)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.primary.opacity(0.06)))
-                // Where typing goes, as a Mac text field shows it: a ring in the accent color while it has the cursor.
-                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(Brand.violet.opacity(fieldFocused ? 0.6 : 0), lineWidth: 2))
+                .glass(in: Capsule())
+                // Where typing goes, as a Mac text field shows it: a ring while it has the cursor.
+                .overlay(Capsule().strokeBorder(Brand.accent.opacity(fieldFocused ? 0.45 : 0), lineWidth: 1.5))
                 .animation(.easeOut(duration: 0.15), value: fieldFocused)
                 Button {
                     search.showsPreview.toggle()
                 } label: {
                     Image(systemName: "sidebar.right")
                         .font(.system(size: 15))
-                        .foregroundStyle(search.showsPreview ? AnyShapeStyle(Brand.violet) : AnyShapeStyle(.secondary))
+                        .foregroundStyle(search.showsPreview ? AnyShapeStyle(Brand.ink) : AnyShapeStyle(.secondary))
                 }
                 .buttonStyle(.plain)
                 .help(search.showsPreview ? "Hide Preview" : "Show Preview")
@@ -440,7 +444,7 @@ struct SearchWindowView: View {
         } else if !search.hasResults {
             ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if search.results.isEmpty {
-            EmptyState(symbol: search.isCode ? FileKind.code.symbol : "magnifyingglass",
+            EmptyState(symbol: search.isCode ? FileKind.code.symbol : nil,
                        title: "No good matches for “\(search.query.trimmingCharacters(in: .whitespaces))”",
                        message: search.isCode ? "Try saying what the code does, or a name that's in it."
                            : "Try describing what's in it: what you'd see or hear, or words you remember.")
@@ -470,7 +474,7 @@ struct SearchWindowView: View {
                     app.updates.checkNow()
                 } label: {
                     Label("Variabe Search \(version) is available", systemImage: "arrow.down.circle.fill")
-                        .foregroundStyle(Brand.deepViolet)
+                        .foregroundStyle(Brand.ink)
                 }
                 .buttonStyle(.plain)
                 .help("See what's new and update")
@@ -535,11 +539,10 @@ private struct KindFilters: View {
                 }
             }
             .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(selected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+            .foregroundStyle(selected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(Capsule().fill(selected ? AnyShapeStyle(Brand.violet)
-                                                : AnyShapeStyle(Color.primary.opacity(0.06))))
+            .modifier(ChipBackground(on: selected))
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)
@@ -631,7 +634,7 @@ private struct GridCell: View {
                 if let place = row.place { PlaceBadge(text: place, onImage: true).padding(6) }
             }
             .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .strokeBorder(selected ? Brand.violet : Color.primary.opacity(0.08), lineWidth: selected ? 3 : 0.5)
+                .strokeBorder(selected ? Brand.ink.opacity(0.75) : Color.primary.opacity(0.08), lineWidth: selected ? 3 : 0.5)
                 .padding(selected ? -3 : 0))
             VStack(alignment: .leading, spacing: 1) {
                 Text(row.title)
@@ -720,7 +723,7 @@ private struct CodeResultRow: View {
         .padding(.vertical, 7)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(selected ? Brand.violet.opacity(0.22) : Color.clear))
+            .fill(selected ? Brand.highlight : Color.clear))
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Code, \(row.name), \(row.reason)")
@@ -808,15 +811,21 @@ struct WeakerToggle: View {
 
 /// After a search: a big quiet symbol, what happened, what to try.
 private struct EmptyState: View {
-    let symbol: String
+    /// An SF Symbol, or nil for the app's own search mark.
+    let symbol: String?
     let title: String
     let message: String
 
     var body: some View {
         VStack(spacing: 10) {
-            Image(systemName: symbol)
-                .font(.system(size: 40, weight: .light))
-                .foregroundStyle(.tertiary)
+            Group {
+                if let symbol {
+                    Image(systemName: symbol).font(.system(size: 40, weight: .light))
+                } else {
+                    LensGlyph(size: 46, weight: 3.5)
+                }
+            }
+            .foregroundStyle(.tertiary)
             Text(title)
                 .font(.system(size: 17, weight: .semibold))
                 .lineLimit(2)
@@ -914,16 +923,16 @@ private struct SearchHome: View {
     }
 }
 
-/// The app's icon with its own glow (the find in the D) spread soft around it: the window's empty states.
+/// The app's icon with a soft light around it: the window's empty states.
 private struct BrandMark: View {
     var body: some View {
         Image(nsImage: NSApp.applicationIconImage)
             .resizable()
             .frame(width: 84, height: 84)
-            .shadow(color: Brand.indigo.opacity(0.3), radius: 14, y: 6)
+            .shadow(color: .black.opacity(0.22), radius: 14, y: 6)
             .background {
                 Circle()
-                    .fill(RadialGradient(colors: [Brand.violet.opacity(0.22), Brand.iris.opacity(0.08), .clear],
+                    .fill(RadialGradient(colors: [Brand.inkSoft.opacity(0.16), Brand.inkSoft.opacity(0.05), .clear],
                                          center: .center, startRadius: 0, endRadius: 150))
                     .frame(width: 300, height: 300)
                     .allowsHitTesting(false)
@@ -944,13 +953,13 @@ private struct ExampleChip: View {
             HStack(spacing: 6) {
                 Image(systemName: kind.symbol)
                     .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(Brand.iris)
+                    .foregroundStyle(.secondary)
                 Text(text)
             }
             .font(.system(size: 12.5))
             .padding(.horizontal, 11)
             .padding(.vertical, 6)
-            .background(Capsule().fill(Brand.iris.opacity(hovering ? 0.2 : 0.1)))
+            .background(Capsule().fill(hovering ? Brand.highlight : Brand.fill))
             .contentShape(Capsule())
         }
         .buttonStyle(.plain)

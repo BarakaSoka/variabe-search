@@ -1,57 +1,54 @@
 import AppKit
 import SwiftUI
 
-/// The menubar icon: the app icon's mark, a lens with a V in it (`Resources/AppIcon/menubar.svg`, drawn here from the
-/// same geometry so it's sharp at any scale). While the model downloads or files index, the lens's ring fills up as
-/// progress; while indexing is paused, two bars take the V's place (at full strength: a dimmed icon reads as "off", and
-/// search still works).
+/// The menubar icon: the app icon's mark, a magnifier with a rounded-square lens (`Resources/AppIcon/menubar.svg`, drawn
+/// here from the same geometry so it's sharp at any scale). While the model downloads or files index, the lens fills up
+/// from the bottom as progress; while indexing is paused, two bars sit in the lens (at full strength: a dimmed icon
+/// reads as "off", and search still works).
 enum StatusIcon {
     /// `update`: a newer version is waiting, a dot at the mark's top right.
     static func image(progress: Double?, paused: Bool = false, update: Bool = false) -> NSImage {
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { rect in
-            // The SVG's 64-unit grid, y down, so angles grow clockwise on screen.
+            // The SVG's 64-unit grid, y down.
             let grid = NSAffineTransform()
             grid.scale(by: rect.width / 64)
             grid.concat()
-            let center = NSPoint(x: 27, y: 27)
-            if let progress {
-                let track = NSBezierPath()
-                track.appendArc(withCenter: center, radius: 20, startAngle: 0, endAngle: 360)
-                track.lineWidth = 5
-                NSColor.black.withAlphaComponent(0.25).setStroke()
-                track.stroke()
-                let arc = NSBezierPath()
-                arc.appendArc(withCenter: center, radius: 20, startAngle: -90,
-                              endAngle: -90 + 360 * max(0.03, min(1, progress)), clockwise: false)
-                arc.lineWidth = 5
-                arc.lineCapStyle = .round
-                NSColor.black.setStroke()
-                arc.stroke()
-            } else {
-                let ring = NSBezierPath(ovalIn: NSRect(x: 7, y: 7, width: 40, height: 40))
-                ring.lineWidth = 5
-                NSColor.black.setStroke()
-                ring.stroke()
-            }
+            NSColor.black.setStroke()
+            NSColor.black.setFill()
+            let lens = NSRect(x: 8, y: 8, width: 36, height: 36)
+            let ring = NSBezierPath(roundedRect: lens, xRadius: 10, yRadius: 10)
+            ring.lineWidth = 5
+            ring.stroke()
             let handle = NSBezierPath()
-            handle.move(to: NSPoint(x: 42.5, y: 42.5))
+            handle.move(to: NSPoint(x: 42, y: 42))
             handle.line(to: NSPoint(x: 57, y: 57))
             handle.lineWidth = 7
             handle.lineCapStyle = .round
             handle.stroke()
-            NSColor.black.setFill()
-            if paused, progress == nil {
-                for x in [19.5, 29.5] {
-                    NSBezierPath(roundedRect: NSRect(x: x, y: 18, width: 5, height: 18), xRadius: 1.6, yRadius: 1.6).fill()
+            let inside = lens.insetBy(dx: 6, dy: 6)
+            if let progress {
+                // A faint lens, filled from the bottom up to how far it's got.
+                NSColor.black.withAlphaComponent(0.25).setFill()
+                NSBezierPath(roundedRect: inside, xRadius: 4, yRadius: 4).fill()
+                let level = inside.height * max(0.08, min(1, progress))
+                NSGraphicsContext.saveGraphicsState()
+                NSBezierPath(rect: NSRect(x: inside.minX, y: inside.maxY - level, width: inside.width, height: level))
+                    .addClip()
+                NSColor.black.setFill()
+                NSBezierPath(roundedRect: inside, xRadius: 4, yRadius: 4).fill()
+                NSGraphicsContext.restoreGraphicsState()
+            } else if paused {
+                for x in [inside.midX - 7.5, inside.midX + 2.5] {
+                    NSBezierPath(roundedRect: NSRect(x: x, y: inside.minY + 2, width: 5, height: inside.height - 4),
+                                 xRadius: 1.6, yRadius: 1.6).fill()
                 }
-            } else {
-                letter.stroke()
             }
             if update {
                 // Cut a gap around it, so it reads as a dot on the mark and not part of it.
                 NSGraphicsContext.current?.compositingOperation = .clear
                 NSBezierPath(ovalIn: NSRect(x: 41, y: -1, width: 24, height: 24)).fill()
                 NSGraphicsContext.current?.compositingOperation = .sourceOver
+                NSColor.black.setFill()
                 NSBezierPath(ovalIn: NSRect(x: 46, y: 4, width: 14, height: 14)).fill()
             }
             return true
@@ -59,18 +56,6 @@ enum StatusIcon {
         image.isTemplate = true   // takes the menubar's color, light or dark
         image.accessibilityDescription = "Variabe Search"
         return image
-    }
-
-    /// The V: two strokes meeting at the bottom, with round ends.
-    private static var letter: NSBezierPath {
-        let v = NSBezierPath()
-        v.move(to: NSPoint(x: 19, y: 20))
-        v.line(to: NSPoint(x: 27, y: 35))
-        v.line(to: NSPoint(x: 35, y: 20))
-        v.lineWidth = 5
-        v.lineCapStyle = .round
-        v.lineJoinStyle = .round
-        return v
     }
 }
 

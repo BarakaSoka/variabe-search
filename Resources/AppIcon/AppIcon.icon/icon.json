@@ -1,28 +1,57 @@
 {
-  "fill" : {
-    "solid" : "srgb:0.09020,0.07451,0.24314,1.00000"
-  },
-  "groups" : [
+  "fill-specializations": [
     {
-      "layers" : [
-        {
-          "image-name" : "lens.svg",
-          "name" : "lens"
-        }
-      ],
-      "name" : "Lens"
+      "value": {
+        "linear-gradient": [
+          "srgb:0.98039,0.98039,0.98431,1.00000",
+          "srgb:0.83137,0.83137,0.85490,1.00000"
+        ]
+      }
     },
     {
-      "layers" : [
-        {
-          "image-name" : "aurora.svg",
-          "name" : "aurora"
-        }
-      ],
-      "name" : "Aurora"
+      "appearance": "dark",
+      "value": {
+        "linear-gradient": [
+          "srgb:0.27451,0.27451,0.29020,1.00000",
+          "srgb:0.09804,0.09804,0.10588,1.00000"
+        ]
+      }
     }
   ],
-  "supported-platforms" : {
-    "squares" : "shared"
+  "groups": [
+    {
+      "layers": [
+        {
+          "fill-specializations": [
+            {
+              "value": {
+                "solid": "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance": "dark",
+              "value": {
+                "solid": "srgb:0.78039,0.78039,0.80000,1.00000"
+              }
+            }
+          ],
+          "glass": true,
+          "image-name": "lens.svg",
+          "name": "lens"
+        }
+      ],
+      "name": "Lens",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
   }
 }

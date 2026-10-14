@@ -41,7 +41,8 @@ cp "$BIN_DIR/VariabeApp" "$APP/Contents/MacOS/$EXEC_NAME"
 # The indexing helper lives in Helpers/: next to Variabe Search in MacOS/ it would collide on a case-insensitive disk.
 cp "$BIN_DIR/variabe" "$APP/Contents/Helpers/variabe"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-xcrun actool --compile "$APP/Contents/Resources" --platform macosx --target-device mac --minimum-deployment-target 14.0 \
+# An absolute path: actool hands the work to a background service that may not share this shell's directory.
+xcrun actool --compile "$PWD/$APP/Contents/Resources" --platform macosx --target-device mac --minimum-deployment-target 14.0 \
   --app-icon AppIcon --output-partial-info-plist "$(mktemp -d)/AppIcon.plist" --enable-on-demand-resources NO \
   --development-region en "$PWD/Resources/AppIcon/AppIcon.icon" > /dev/null
 cp "$ICON" "$APP/Contents/Resources/AppIcon.icns"   # over actool's plainer fallback: ours has simplified 16 and 32 px

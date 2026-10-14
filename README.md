@@ -63,7 +63,7 @@ whole folders, or only some of their subfolders, with an estimate of how long th
 | ⌘C | Copies the file, to paste anywhere |
 | ⌘O | The same search in a bigger window, with a picture grid |
 
-Variabe Search lives in the menu bar — the lens with a V — where you can see indexing progress, pause it, or open
+Variabe Search lives in the menu bar — the magnifier with a square lens — where you can see indexing progress, pause it, or open
 Settings. It has no Dock icon.
 
 ## What it reads

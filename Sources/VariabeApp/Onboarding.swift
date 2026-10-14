@@ -39,7 +39,7 @@ final class OnboardingController: NSObject, NSWindowDelegate {
         window.isReleasedWhenClosed = false
         window.delegate = self
         state.close = { [weak self] in self?.close() }
-        window.contentView = NSHostingView(rootView: OnboardingView(state: state).tint(Brand.violet))
+        window.contentView = NSHostingView(rootView: OnboardingView(state: state).tint(Brand.accent))
         window.center()
         self.window = window
         return window
@@ -238,10 +238,10 @@ struct OnboardingView: View {
         }
         .frame(width: Self.size.width, height: Self.size.height)
         .background(alignment: .top) {
-            // A soft violet glow behind the top of each step, from the icon's colors.
+            // A soft light behind the top of each step.
             Brand.wash
                 .frame(height: 260)
-                .mask(LinearGradient(colors: [.black.opacity(0.10), .clear], startPoint: .top, endPoint: .bottom))
+                .mask(LinearGradient(colors: [.black.opacity(0.06), .clear], startPoint: .top, endPoint: .bottom))
                 .ignoresSafeArea()
         }
     }
@@ -321,7 +321,7 @@ struct DownloadStatus: View {
         HStack(spacing: 7) {
             switch download.phase {
             case .ready:
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(Brand.ink)
                 Text("Model ready")
             case .failed(let message):
                 Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
@@ -350,7 +350,7 @@ private struct WelcomeStep: View {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
                 .frame(width: 96, height: 96)
-                .shadow(color: Brand.indigo.opacity(0.35), radius: 14, y: 6)
+                .shadow(color: .black.opacity(0.25), radius: 14, y: 6)
             Text("Variabe Search")
                 .font(.system(size: 30, weight: .bold))
                 .padding(.top, 10)
@@ -395,9 +395,9 @@ private struct Feature: View {
         HStack(spacing: 14) {
             Image(systemName: symbol)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(.white)
+                .foregroundStyle(Brand.ink)
                 .frame(width: 34, height: 34)
-                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Brand.tile))
+                .glass(in: RoundedRectangle(cornerRadius: 10, style: .continuous))
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.system(size: 14, weight: .semibold))
                 Text(example).font(.system(size: 12)).foregroundStyle(.secondary)
@@ -568,7 +568,7 @@ private struct ShortcutStep: View {
             Group {
                 if state.hotkeyWorked {
                     Label("That's it. It works from any app.", systemImage: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Brand.ink)
                 } else if let hotkey = state.model.hotkey {
                     Text("Try it now: press \(hotkey.display).")
                         .foregroundStyle(.secondary)
@@ -640,7 +640,7 @@ private struct ReadyStep: View {
             .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color.primary.opacity(0.04)))
             .padding(.top, 28)
             HStack(spacing: 8) {
-                Image(systemName: "sparkle.magnifyingglass")
+                LensGlyph(size: 15)
                 Text("Variabe Search lives in the menu bar, which shows how indexing is going.")
             }
             .font(.system(size: 12))

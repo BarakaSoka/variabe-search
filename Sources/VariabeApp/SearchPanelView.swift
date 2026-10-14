@@ -40,11 +40,7 @@ struct SearchPanelView: View {
             .foregroundStyle(Brand.gradient)
             .frame(width: 26)
             .help(controller.isCode ? "Searching your code" : "")
-            // With code search on, one example is code's: nothing else in the panel shows "code:".
-            SearchField(text: $controller.query, fontSize: 24,
-                        placeholder: controller.model.hasCode
-                            ? "Describe it: “zebra in a video”, “code: retry with backoff”…"
-                            : "Describe it: “payment error screenshot”, “zebra in a video”…") {
+            SearchField(text: $controller.query, fontSize: 24, placeholder: "Search what you remember in your files") {
                 controller.field = $0
             }
             if controller.phase == .words, controller.encoder == .starting {
@@ -78,15 +74,12 @@ struct SearchPanelView: View {
                     Button("Choose Folders…") { controller.chooseFolders() }
                         .padding(.top, 4)
                 } else if controller.isCode {
-                    Text("No good matches in your code").font(.system(size: 15, weight: .semibold))
-                    Text("Try saying what the code does, or a name that's in it.").foregroundStyle(.secondary)
+                    Text("No matches in your code").font(.system(size: 15, weight: .semibold))
                 } else {
                     LensGlyph(size: 36, weight: 3.5)
                         .foregroundStyle(Brand.gradient)
                         .padding(.bottom, 4)
-                    Text("No good matches").font(.system(size: 15, weight: .semibold))
-                    Text("Try what you'd see or hear in it, or words you remember from it.")
-                        .foregroundStyle(.secondary)
+                    Text("No matches").font(.system(size: 15, weight: .semibold))
                 }
             }
             .font(.system(size: 13))
@@ -408,6 +401,8 @@ struct SearchField: NSViewRepresentable {
         (field as? FocusReportingField)?.onFocus = onFocus
         if field.stringValue != text { field.stringValue = text }
         if field.placeholderString != placeholder { field.placeholderString = placeholder }
+        // The window's field grows while it sits in the middle and shrinks at the top.
+        if field.font?.pointSize != fontSize { field.font = .systemFont(ofSize: fontSize) }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(text: $text) }

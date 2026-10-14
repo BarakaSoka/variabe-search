@@ -13,6 +13,24 @@ final class SearchWindowController: NSObject, NSWindowDelegate {
     private var window: QuickLookWindow?
     private var keyMonitor: Any?
     private var mouseMonitor: Any?
+    /// The window is at its small size, for the field alone (nothing typed).
+    private var compact = false
+
+    /// Only the field and what's indexed: no room wasted around them.
+    static let compactSize = NSSize(width: 720, height: 320)
+    static let compactMinSize = NSSize(width: 600, height: 280)
+    /// Results: the room a grid and a preview need, at least.
+    static let resultsMinSize = NSSize(width: 820, height: 520)
+    private static let resultsSizeKey = "searchWindowResultsSize"
+
+    /// The size for results: as you last left it (resizing the window with results showing changes it).
+    private var resultsSize: NSSize {
+        get {
+            UserDefaults.standard.string(forKey: Self.resultsSizeKey).map(NSSizeFromString)
+                .flatMap { $0.width >= Self.resultsMinSize.width ? $0 : nil } ?? NSSize(width: 1040, height: 700)
+        }
+        set { UserDefaults.standard.set(NSStringFromSize(newValue), forKey: Self.resultsSizeKey) }
+    }
 
     init(app: AppController) {
         self.app = app
@@ -27,6 +45,7 @@ final class SearchWindowController: NSObject, NSWindowDelegate {
             search.filter = kind
             search.query = query
         }
+        fit(compact: wantsCompact, animate: false)
         app.present(window)
         if !AppController.offscreen { window.makeFirstResponder(search.field) }
         installKeyMonitor()
@@ -36,8 +55,41 @@ final class SearchWindowController: NSObject, NSWindowDelegate {
         window?.close()
     }
 
+    /// Nothing typed (with folders chosen): the window's small size, the field in the middle of it.
+    var wantsCompact: Bool {
+        app.model.hasFolders && search.query.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// Small for the field alone, big for results (`resultsSize`): grows and shrinks around its top edge, keeping its
+    /// center, so the field stays near where it was. The results size is remembered on the way back to small.
+    func fit(compact: Bool, animate: Bool = true) {
+        guard let window, compact != self.compact else { return }
+        if !self.compact { resultsSize = window.frame.size }
+        self.compact = compact
+        window.minSize = compact ? Self.compactMinSize : Self.resultsMinSize
+        let size = compact ? Self.compactSize : resultsSize
+        var frame = NSRect(x: window.frame.midX - size.width / 2, y: window.frame.maxY - size.height,
+                           width: size.width, height: size.height)
+        if let area = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame {
+            frame.size.width = min(frame.width, area.width)
+            frame.size.height = min(frame.height, area.height)
+            frame.origin.x = max(area.minX, min(frame.minX, area.maxX - frame.width))
+            frame.origin.y = max(area.minY, min(frame.minY, area.maxY - frame.height))
+        }
+        guard animate, !AppController.offscreen else {
+            window.setFrame(frame, display: true)
+            return
+        }
+        // Through the animator: setFrame(_:display:animate:) would hold the main thread, and the keys being typed.
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.22
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            window.animator().setFrame(frame, display: true)
+        }
+    }
+
     private func makeWindow() -> QuickLookWindow {
-        let window = QuickLookWindow(contentRect: NSRect(x: 0, y: 0, width: 1040, height: 700),
+        let window = QuickLookWindow(contentRect: NSRect(origin: .zero, size: Self.compactSize),
                                      styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                                      backing: .buffered, defer: false)
         // An empty unified toolbar makes the title bar tall enough for the search field to sit beside the window
@@ -47,15 +99,13 @@ final class SearchWindowController: NSObject, NSWindowDelegate {
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
         window.title = "Variabe Search"
-        window.minSize = NSSize(width: 820, height: 520)
+        window.minSize = Self.compactMinSize
         window.isReleasedWhenClosed = false
         window.delegate = self
-        // The frame is remembered in the app's real defaults, so dev runs (their own -defaultsSuite) don't keep it.
-        if UserDefaults.standard.string(forKey: "defaultsSuite") == nil {
-            window.setFrameAutosaveName("VariabeSearchWindow")
-        }
         window.contentView = NSHostingView(rootView: SearchWindowView(search: search, model: app.model, app: app).tint(Brand.accent))
-        if window.frame.origin == .zero { window.center() }
+        // Small, centered, a little above the middle of the screen; `show` grows it if there's a query.
+        window.center()
+        compact = true
         self.window = window
         return window
     }
@@ -66,6 +116,7 @@ final class SearchWindowController: NSObject, NSWindowDelegate {
         }
         removeKeyMonitor()
         PreviewPlayback.shared.stop()
+        if let window, !compact { resultsSize = window.frame.size }
         window?.contentView = nil
         window = nil
         app.windowClosed()
@@ -336,31 +387,63 @@ struct SearchWindowView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            // Nothing typed: the field sits in the middle with what's indexed under it, and moves to the top once you
+            // type. It's the same field throughout (only the space around it changes), so typing never loses the cursor.
+            if isHome { Spacer(minLength: 0) }
             header
-            Divider()
-            HStack(spacing: 0) {
-                content
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                if search.showsPreview, let row = search.selectedRow, search.hasResults {
-                    Divider()
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 14) {
-                            PreviewPane(row: row, imageSize: CGSize(width: 292, height: 230),
-                                        open: { search.open(row) })
-                            PreviewActions(row: row, open: { search.open(row) },
-                                           reveal: { NSWorkspace.shared.activateFileViewerSelecting([row.url]) })
+            if isHome {
+                HomeInfo(search: search, model: model, engine: app.engine)
+                Spacer(minLength: 0)
+                Spacer(minLength: 0)   // a little above the middle, as the eye expects
+            } else {
+                Divider()
+                HStack(spacing: 0) {
+                    content
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    if search.showsPreview, let row = search.selectedRow, search.hasResults {
+                        Divider()
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 14) {
+                                PreviewPane(row: row, imageSize: CGSize(width: 292, height: 230),
+                                            open: { search.open(row) })
+                                PreviewActions(row: row, open: { search.open(row) },
+                                               reveal: { NSWorkspace.shared.activateFileViewerSelecting([row.url]) })
+                            }
+                            .padding(16)
                         }
-                        .padding(16)
+                        .frame(width: 324)
+                        .background(Color.primary.opacity(0.025))
                     }
-                    .frame(width: 324)
-                    .background(Color.primary.opacity(0.025))
                 }
             }
             Divider()
             statusBar
         }
+        .overlay(alignment: .topTrailing) {
+            if isHome { settingsButton.padding(.top, 16).padding(.trailing, 16) }
+        }
+        .animation(.smooth(duration: 0.3), value: isHome)
+        .onChange(of: isHome) { _, home in app.searchWindow.fit(compact: home) }
         .ignoresSafeArea(.container, edges: .top)
-        .frame(minWidth: 820, minHeight: 520)
+        .frame(minWidth: SearchWindowController.compactMinSize.width,
+               minHeight: SearchWindowController.compactMinSize.height - 28)
+    }
+
+    /// Folders chosen and nothing typed: the field in the middle, nothing else but what's indexed.
+    private var isHome: Bool {
+        model.hasFolders && search.query.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var settingsButton: some View {
+        Button {
+            app.showSettings()
+        } label: {
+            Image(systemName: "gearshape")
+                .font(.system(size: 15))
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+        .help("Settings (⌘,)")
     }
 
     private var header: some View {
@@ -371,12 +454,12 @@ struct SearchWindowView: View {
                         if search.isCode {
                             Image(systemName: FileKind.code.symbol).font(.system(size: 15, weight: .semibold))
                         } else {
-                            LensGlyph(size: 19)
+                            LensGlyph(size: isHome ? 22 : 19)
                         }
                     }
                     .foregroundStyle(Brand.gradient)
                     .frame(width: 22)
-                    SearchField(text: $search.query, fontSize: 18, placeholder: placeholder,
+                    SearchField(text: $search.query, fontSize: isHome ? 21 : 18, placeholder: placeholder,
                                 onMake: { search.field = $0 }, onFocus: { fieldFocused = $0 })
                     if !search.query.isEmpty {
                         Button {
@@ -388,44 +471,39 @@ struct SearchWindowView: View {
                         .help("Clear")
                     }
                 }
-                .padding(.horizontal, 14)
-                .frame(height: 38)
+                .padding(.horizontal, isHome ? 20 : 14)
+                .frame(height: isHome ? 52 : 38)
+                .frame(maxWidth: isHome ? 600 : .infinity)
                 .glass(in: Capsule())
                 // Where typing goes, as a Mac text field shows it: a ring while it has the cursor.
                 .overlay(Capsule().strokeBorder(Brand.accent.opacity(fieldFocused ? 0.45 : 0), lineWidth: 1.5))
                 .animation(.easeOut(duration: 0.15), value: fieldFocused)
-                Button {
-                    search.showsPreview.toggle()
-                } label: {
-                    Image(systemName: "sidebar.right")
-                        .font(.system(size: 15))
-                        .foregroundStyle(search.showsPreview ? AnyShapeStyle(Brand.ink) : AnyShapeStyle(.secondary))
+                if !isHome {
+                    Button {
+                        search.showsPreview.toggle()
+                    } label: {
+                        Image(systemName: "sidebar.right")
+                            .font(.system(size: 15))
+                            .foregroundStyle(search.showsPreview ? AnyShapeStyle(Brand.ink) : AnyShapeStyle(.secondary))
+                    }
+                    .buttonStyle(.plain)
+                    .help(search.showsPreview ? "Hide Preview" : "Show Preview")
+                    settingsButton
                 }
-                .buttonStyle(.plain)
-                .help(search.showsPreview ? "Hide Preview" : "Show Preview")
-                Button {
-                    app.showSettings()
-                } label: {
-                    Image(systemName: "gearshape")
-                        .font(.system(size: 15))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .help("Settings (⌘,)")
             }
-            .padding(.leading, 78)   // beside the window buttons
-            .frame(height: 52)
-            KindFilters(search: search, showsCode: model.hasCode)
+            .padding(.leading, isHome ? 0 : 78)   // beside the window buttons, once it's at the top
+            .frame(maxWidth: .infinity)
+            .frame(height: isHome ? 64 : 52)
+            if !isHome { KindFilters(search: search, showsCode: model.hasCode) }
         }
         .padding(.horizontal, 14)
-        .padding(.bottom, 10)
+        .padding(.bottom, isHome ? 0 : 10)
     }
 
     @ViewBuilder private var content: some View {
         if !model.hasFolders {
             VStack(spacing: 0) {
-                BrandMark()
-                Text("Choose folders to search").font(.system(size: 20, weight: .bold)).padding(.top, 18)
+                Text("Choose folders to search").font(.system(size: 20, weight: .bold))
                 Text("Variabe Search only looks where you tell it to.")
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
@@ -437,17 +515,13 @@ struct SearchWindowView: View {
             }
             .padding(.bottom, 24)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if search.query.trimmingCharacters(in: .whitespaces).isEmpty {
-            SearchHome(search: search, model: model, engine: app.engine)
         } else if let phase = search.codePhase {
             CodeOffOrHint(phase: phase, search: search) { app.chooseCodeFolders() }
         } else if !search.hasResults {
             ProgressView().controlSize(.small).frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if search.results.isEmpty {
             EmptyState(symbol: search.isCode ? FileKind.code.symbol : nil,
-                       title: "No good matches for “\(search.query.trimmingCharacters(in: .whitespaces))”",
-                       message: search.isCode ? "Try saying what the code does, or a name that's in it."
-                           : "Try describing what's in it: what you'd see or hear, or words you remember.")
+                       title: "No matches for “\(search.query.trimmingCharacters(in: .whitespaces))”")
         } else if search.isCode {
             CodeResultsList(search: search)
         } else {
@@ -486,11 +560,8 @@ struct SearchWindowView: View {
         .frame(height: 28)
     }
 
-    /// Examples of what to type: code's with the Code chip on, and one of them with code search on (as the panel's).
     private var placeholder: String {
-        if search.filter == .code { return "Describe the code: “retry a request with backoff”, a name in it…" }
-        return model.hasCode ? "Describe it: “zebra in a video”, “code: retry with backoff”…"
-            : "Describe it: “receipt from the hardware store”, “zebra in a video”…"
+        search.filter == .code ? "Search what you remember in your code" : "Search what you remember in your files"
     }
 
     private var resultCount: String {
@@ -814,7 +885,6 @@ private struct EmptyState: View {
     /// An SF Symbol, or nil for the app's own search mark.
     let symbol: String?
     let title: String
-    let message: String
 
     var body: some View {
         VStack(spacing: 10) {
@@ -831,78 +901,40 @@ private struct EmptyState: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 480)
-            Text(message)
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: 360)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
-/// Nothing typed yet: the app's mark (not a magnifier, which reads as a second search field), a pointer to the field
-/// above, examples to click (each with the kind it finds), what's in the index, and the shortcut. A click anywhere else
-/// puts the cursor in the field.
-private struct SearchHome: View {
+/// Under the field while nothing's typed: what's in the index (each kind's count, and where) and the shortcut. A click
+/// anywhere around it puts the cursor in the field.
+private struct HomeInfo: View {
     let search: SearchModel
     let model: AppModel
     let engine: Engine
     @State private var kinds: [FileKind: Int] = [:]
 
-    private static let examples: [(text: String, kind: ResultGroupKind)] = [
-        ("a screenshot of an error message", .screenshots), ("receipt", .documents), ("whiteboard notes", .images),
-        ("someone laughing", .audio), ("a dog on the beach", .video), ("slides about the budget", .documents),
-    ]
-
     var body: some View {
-        VStack(spacing: 0) {
-            BrandMark()
-            Text("Describe it. Find it.")
-                .font(.system(size: 24, weight: .bold))
-                .padding(.top, 18)
-            Text("Type what you remember in the search field above: what's in it, what it looks or sounds like, or "
-                 + "words from it.")
-                .font(.system(size: 13))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: 440)
-                .padding(.top, 6)
-            Text("TRY")
-                .font(.system(size: 10, weight: .semibold))
-                .tracking(0.8)
-                .foregroundStyle(.tertiary)
-                .padding(.top, 26)
-            FlowRow(spacing: 8) {
-                ForEach(examples, id: \.text) { example in
-                    ExampleChip(text: example.text, kind: example.kind) { search.query = example.text }
+        VStack(spacing: 10) {
+            if !kinds.isEmpty {
+                HStack(spacing: 8) {
+                    KindCounts(counts: kinds)
+                    Text("in \(folders)")
+                }
+            } else if model.status.searchable > 0 {
+                Text("\(model.status.searchable.formatted()) files to search in \(folders)")
+            }
+            if let hotkey = model.hotkey {
+                HStack(spacing: 6) {
+                    Keycaps(caps: hotkey.caps, size: 10)
+                    Text("opens Variabe Search from any app")
                 }
             }
-            .frame(maxWidth: 560)
-            .padding(.top, 8)
-            VStack(spacing: 8) {
-                if !kinds.isEmpty {
-                    HStack(spacing: 8) {
-                        KindCounts(counts: kinds)
-                        Text("in \(folders)")
-                    }
-                } else if model.status.searchable > 0 {
-                    Text("\(model.status.searchable.formatted()) files to search in \(folders)")
-                }
-                if let hotkey = model.hotkey {
-                    HStack(spacing: 6) {
-                        Keycaps(caps: hotkey.caps, size: 10)
-                        Text("opens Variabe Search from any app")
-                    }
-                }
-            }
-            .font(.system(size: 11))
-            .foregroundStyle(.tertiary)
-            .padding(.top, 30)
         }
-        .padding(.bottom, 24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .font(.system(size: 11.5))
+        .foregroundStyle(.tertiary)
+        .padding(.top, 14)
+        .frame(maxWidth: .infinity)
         .contentShape(Rectangle())
         .onTapGesture { search.focusField() }
         .task(id: model.status.files) {
@@ -912,103 +944,8 @@ private struct SearchHome: View {
         }
     }
 
-    /// With code search on, one of code's too.
-    private var examples: [(text: String, kind: ResultGroupKind)] {
-        Self.examples + (model.hasCode ? [("code: where the settings are saved", .code)] : [])
-    }
-
     private var folders: String {
         let names = model.settings.roots.map(\.lastPathComponent)
         return names.count <= 3 ? names.formatted(.list(type: .and)) : "\(names.count) folders"
-    }
-}
-
-/// The app's icon with a soft light around it: the window's empty states.
-private struct BrandMark: View {
-    var body: some View {
-        Image(nsImage: NSApp.applicationIconImage)
-            .resizable()
-            .frame(width: 84, height: 84)
-            .shadow(color: .black.opacity(0.22), radius: 14, y: 6)
-            .background {
-                Circle()
-                    .fill(RadialGradient(colors: [Brand.inkSoft.opacity(0.16), Brand.inkSoft.opacity(0.05), .clear],
-                                         center: .center, startRadius: 0, endRadius: 150))
-                    .frame(width: 300, height: 300)
-                    .allowsHitTesting(false)
-            }
-            .accessibilityHidden(true)
-    }
-}
-
-/// An example query: the kind it finds, the words; a click searches for it.
-private struct ExampleChip: View {
-    let text: String
-    let kind: ResultGroupKind
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 6) {
-                Image(systemName: kind.symbol)
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-                Text(text)
-            }
-            .font(.system(size: 12.5))
-            .padding(.horizontal, 11)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(hovering ? Brand.highlight : Brand.fill))
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .help("Search for “\(text)”")
-        .onHover { inside in
-            hovering = inside
-            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
-        }
-        .onDisappear { if hovering { NSCursor.pop() } }
-    }
-}
-
-/// Lays children out in rows, wrapping like text.
-struct FlowRow: Layout {
-    var spacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let rows = arrange(width: proposal.width ?? .infinity, subviews)
-        let height = rows.map(\.height).reduce(0, +) + spacing * CGFloat(max(0, rows.count - 1))
-        return CGSize(width: proposal.width ?? rows.map(\.width).max() ?? 0, height: height)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var y = bounds.minY
-        for row in arrange(width: bounds.width, subviews) {
-            var x = bounds.minX + (bounds.width - row.width) / 2
-            for index in row.items {
-                let size = subviews[index].sizeThatFits(.unspecified)
-                subviews[index].place(at: CGPoint(x: x, y: y), proposal: .unspecified)
-                x += size.width + spacing
-            }
-            y += row.height + spacing
-        }
-    }
-
-    private func arrange(width: CGFloat, _ subviews: Subviews) -> [(items: [Int], width: CGFloat, height: CGFloat)] {
-        var rows: [(items: [Int], width: CGFloat, height: CGFloat)] = []
-        var current: (items: [Int], width: CGFloat, height: CGFloat) = ([], 0, 0)
-        for index in subviews.indices {
-            let size = subviews[index].sizeThatFits(.unspecified)
-            let needed = current.items.isEmpty ? size.width : current.width + spacing + size.width
-            if needed > width, !current.items.isEmpty {
-                rows.append(current)
-                current = ([index], size.width, size.height)
-            } else {
-                current = (current.items + [index], needed, max(current.height, size.height))
-            }
-        }
-        if !current.items.isEmpty { rows.append(current) }
-        return rows
     }
 }

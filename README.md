@@ -38,7 +38,12 @@ telemetry, no cloud.
 
 ## Get started
 
-Variabe Search is built from source for now (signed releases will come later).
+**Download:** get `VariabeSearch-<version>.dmg` from [Releases](https://github.com/BarakaSoka/variabe-search/releases)
+(Apple Silicon, macOS 14 or later), open it and drag Variabe Search to Applications. The app isn't notarized yet, so
+macOS blocks the first launch: open System Settings > Privacy & Security and click **Open Anyway** (once). For a newer
+version, download the latest DMG and replace the app; your index and settings are kept.
+
+**Or build from source:**
 
 ```sh
 git clone https://github.com/BarakaSoka/variabe-search && cd variabe-search

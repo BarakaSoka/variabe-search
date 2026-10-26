@@ -43,6 +43,12 @@ telemetry, no cloud.
 macOS blocks the first launch: open System Settings > Privacy & Security and click **Open Anyway** (once). For a newer
 version, download the latest DMG and replace the app; your index and settings are kept.
 
+**Install with an AI agent:** paste this into Claude, Cursor, Codex or any agent that can run commands on your Mac:
+
+```
+Install Variabe Search on my Mac by following https://raw.githubusercontent.com/BarakaSoka/variabe-search/main/INSTALL.md
+```
+
 **Or build from source:**
 
 ```sh
